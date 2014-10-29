@@ -132,18 +132,67 @@ namespace FiledRecipes.Domain
 //NEW METHODS
         public void Load()
         {
-            StreamReader reader = new StreamReader("App_Data\\Recipes.txt");
-            string line;
-
-            while((line = reader.ReadLine()) != null)
+            using (StreamReader reader = new StreamReader("App_Data\\Recipes.txt")) //Use _path
             {
-                Console.WriteLine(line);
+                string line;
+                Recipe recipe = null;
+                List<Recipe> recipes = new List<Recipe>();
+
+                RecipeReadStatus status = RecipeReadStatus.Indefinite;
+
+                while ((line = reader.ReadLine()) != null) //Iterates through the .txt file provided.
+                {
+                    switch(line) //Checks what kind of line it is.
+                    {
+                        case "":
+                            continue;
+                        case SectionRecipe:
+                            status = RecipeReadStatus.New;
+                            line = reader.ReadLine();
+                            break;
+                        case SectionIngredients:
+                            status = RecipeReadStatus.Ingredient;
+                            line = reader.ReadLine();
+                            break;
+                        case SectionInstructions:
+                            status = RecipeReadStatus.Instruction;
+                            line = reader.ReadLine();
+                            break;
+                        default:
+                            break;
+                    }
+                    if (status == RecipeReadStatus.New) //If the line indicates a recipe, creates a new recipe object.
+                    {
+                        recipe = new Recipe(line);
+                        recipes.Add(recipe);
+                    }
+                    else if(status == RecipeReadStatus.Ingredient) //If the line indicates an ingredient list
+                    {
+                        string[] ingredientArray = line.Split(new char[] { ';' });
+                        if(ingredientArray.GetLength(0) != 3)
+                        {
+                            throw new FileFormatException("The ingredient in the text file does not have the required number (3) of parts.");
+                        }
+
+                        Ingredient ingredient = new Ingredient();
+                        ingredient.Amount = ingredientArray[0];
+                        ingredient.Measure = ingredientArray[1];
+                        ingredient.Name = ingredientArray[2];
+
+                        recipe.Add(ingredient);
+                    }
+                    else if(status == RecipeReadStatus.Instruction)
+                    {
+                        recipe.Add(line);
+                    }
+                    else
+                    {
+                        throw new FileFormatException("An error encountered while reading .txt file");
+                    }
+                }
+                recipes.Sort();
+
             }
-
-
-
-
-            throw new NotImplementedException();
         }
 
         public void Save()
