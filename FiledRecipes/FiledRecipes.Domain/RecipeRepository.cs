@@ -132,11 +132,11 @@ namespace FiledRecipes.Domain
 //NEW METHODS
         public void Load()
         {
-            using (StreamReader reader = new StreamReader("App_Data\\Recipes.txt")) //Use _path
+            using (StreamReader reader = new StreamReader(_path))
             {
                 string line;
                 Recipe recipe = null;
-                List<Recipe> recipes = new List<Recipe>();
+                List<IRecipe> recipes = new List<IRecipe>();
 
                 RecipeReadStatus status = RecipeReadStatus.Indefinite;
 
@@ -166,7 +166,7 @@ namespace FiledRecipes.Domain
                         recipe = new Recipe(line);
                         recipes.Add(recipe);
                     }
-                    else if(status == RecipeReadStatus.Ingredient) //If the line indicates an ingredient list
+                    else if(status == RecipeReadStatus.Ingredient) //If the line indicates an ingredient list, split to a string array and add it to the active recipe.
                     {
                         string[] ingredientArray = line.Split(new char[] { ';' });
                         if(ingredientArray.GetLength(0) != 3)
@@ -181,7 +181,7 @@ namespace FiledRecipes.Domain
 
                         recipe.Add(ingredient);
                     }
-                    else if(status == RecipeReadStatus.Instruction)
+                    else if(status == RecipeReadStatus.Instruction) //If the line indicates an instruction, adds the instruction to the active recipe.
                     {
                         recipe.Add(line);
                     }
@@ -190,14 +190,36 @@ namespace FiledRecipes.Domain
                         throw new FileFormatException("An error encountered while reading .txt file");
                     }
                 }
-                recipes.Sort();
-
+                _recipes.Clear();
+                _recipes.AddRange(recipes.OrderBy(rec => rec.Name));
+                _recipes.TrimExcess();
+                IsModified = false;
+                OnRecipesChanged(EventArgs.Empty);
             }
         }
 
         public void Save()
         {
-            throw new NotImplementedException();
+            using (StreamWriter writer = new StreamWriter(_path))
+            {
+                foreach (Recipe recipe in _recipes)
+                {
+                    writer.WriteLine(SectionRecipe);
+                    writer.WriteLine(recipe.Name);
+
+                    writer.WriteLine(SectionIngredients);
+                    foreach (Ingredient ingredient in recipe.Ingredients)
+                    {
+                        writer.WriteLine(String.Format("{0};{1};{2}", ingredient.Amount, ingredient.Measure, ingredient.Name));
+                    }
+
+                    writer.WriteLine(SectionInstructions);
+                    foreach (string instruction in recipe.Instructions)
+                    {
+                        writer.WriteLine(instruction);
+                    }
+                }
+            }
         }
     }
 }

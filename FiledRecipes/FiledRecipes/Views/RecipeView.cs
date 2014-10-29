@@ -15,11 +15,29 @@ namespace FiledRecipes.Views
 //NEW METHODS
         public void Show(IRecipe recipe)
         {
-            throw new NotImplementedException();
+            ShowPanel(recipe.Name, ConsoleColor.White, ConsoleColor.Magenta);
+            Console.WriteLine();
+            Console.WriteLine(" - Ingredienser -----------------------------\n"); //Try to find common methods for this output?
+
+            foreach (Ingredient i in recipe.Ingredients)
+            {
+                Console.WriteLine(i.ToString());
+            }
+            Console.WriteLine();
+            Console.WriteLine(" - Instruktioner ----------------------------\n"); //Try to find common methods for this output? Pad Left/Right?
+
+            foreach (string i in recipe.Instructions)
+            {
+                Console.WriteLine(i); //Make it not split words?
+            }
         }
          public void Show(IEnumerable<IRecipe> recipes)
         {
-            throw new NotImplementedException();
+            foreach (IRecipe recipe in recipes)
+            {
+                Show(recipe);
+                ContinueOnKeyPressed();
+            }
         }
     }
 }
