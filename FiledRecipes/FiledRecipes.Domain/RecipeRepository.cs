@@ -128,8 +128,10 @@ namespace FiledRecipes.Domain
             }
         }
 
-
 //NEW METHODS
+        /// <summary>
+        /// Loads recipes from a text file.
+        /// </summary>
         public void Load()
         {
             using (StreamReader reader = new StreamReader(_path))
@@ -137,12 +139,13 @@ namespace FiledRecipes.Domain
                 string line;
                 Recipe recipe = null;
                 List<IRecipe> recipes = new List<IRecipe>();
-
                 RecipeReadStatus status = RecipeReadStatus.Indefinite;
 
-                while ((line = reader.ReadLine()) != null) //Iterates through the .txt file provided.
+                //Iterates through the .txt file provided.
+                while ((line = reader.ReadLine()) != null) 
                 {
-                    switch(line) //Checks what kind of line it is.
+                    //Checks what kind of line it is, if it's a section indicator also reads the next line.
+                    switch(line) 
                     {
                         case "":
                             continue;
@@ -161,27 +164,28 @@ namespace FiledRecipes.Domain
                         default:
                             break;
                     }
-                    if (status == RecipeReadStatus.New) //If the line indicates a recipe, creates a new recipe object.
+                    //If the line indicates a recipe, creates a new recipe object.
+                    if (status == RecipeReadStatus.New) 
                     {
                         recipe = new Recipe(line);
                         recipes.Add(recipe);
                     }
-                    else if(status == RecipeReadStatus.Ingredient) //If the line indicates an ingredient list, split to a string array and add it to the active recipe.
+                    //If the line indicates an ingredient list, split to a string array and add it to the active recipe.
+                    else if(status == RecipeReadStatus.Ingredient) 
                     {
                         string[] ingredientArray = line.Split(new char[] { ';' });
                         if(ingredientArray.GetLength(0) != 3)
                         {
                             throw new FileFormatException("The ingredient in the text file does not have the required number (3) of parts.");
                         }
-
                         Ingredient ingredient = new Ingredient();
                         ingredient.Amount = ingredientArray[0];
                         ingredient.Measure = ingredientArray[1];
                         ingredient.Name = ingredientArray[2];
-
                         recipe.Add(ingredient);
                     }
-                    else if(status == RecipeReadStatus.Instruction) //If the line indicates an instruction, adds the instruction to the active recipe.
+                    //If the line indicates an instruction, adds the instruction to the active recipe.
+                    else if(status == RecipeReadStatus.Instruction) 
                     {
                         recipe.Add(line);
                     }
@@ -190,6 +194,7 @@ namespace FiledRecipes.Domain
                         throw new FileFormatException("An error encountered while reading .txt file");
                     }
                 }
+                //Clears the field _recipes and adds the recipes from text file by alphabetic order.
                 _recipes.Clear();
                 _recipes.AddRange(recipes.OrderBy(rec => rec.Name));
                 _recipes.TrimExcess();
@@ -197,22 +202,28 @@ namespace FiledRecipes.Domain
                 OnRecipesChanged(EventArgs.Empty);
             }
         }
-
+        /// <summary>
+        /// Saves recipes to the text file. NOTE: Writes over the old text file.
+        /// </summary>
         public void Save()
         {
+            //Creates a StreamWriter to write to the text file.
             using (StreamWriter writer = new StreamWriter(_path))
             {
+                //Iterates through recipes, starts each with writing recipe indicator and recipe name
                 foreach (Recipe recipe in _recipes)
                 {
                     writer.WriteLine(SectionRecipe);
                     writer.WriteLine(recipe.Name);
 
+                    //Writes ingredient indicator, then iterates through ingredients and writes them according to supplied format.
                     writer.WriteLine(SectionIngredients);
                     foreach (Ingredient ingredient in recipe.Ingredients)
                     {
-                        writer.WriteLine(String.Format("{0};{1};{2}", ingredient.Amount, ingredient.Measure, ingredient.Name));
+                        writer.WriteLine(String.Format("{0};{1};{2}", ingredient.Amount, ingredient.Measure, ingredient.Name)); //Note: Maybe break out the separator char to a shared const of load()/save() methods if allowed? Better support for text files with other formats.
                     }
 
+                    //Writes instruction indicator, then iterates through instructions and writes them.
                     writer.WriteLine(SectionInstructions);
                     foreach (string instruction in recipe.Instructions)
                     {
